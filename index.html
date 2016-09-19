@@ -63,21 +63,21 @@
 				if (params.sexID) {
 					arry.push("sexID =" + params.sexID);
 				}
-				/*if (params.priceID) {
+				if (params.priceID) {
 					switch(params.priceID){
 						case '1':
-							arry.push("priceID < " + 1000);
+							arry.push("unit_price < " + 5000);
 							break;
 						case '2':
-							arry.push("priceID BETWEEN " + 1000 + " AND " + 2000);
+							arry.push("unit_price BETWEEN " + 5000 + " AND " + 10000);
 							break;
 						case '3':
-							arry.push("priceID BETWEEN 2000 AND 3000");
+							arry.push("unit_price BETWEEN 10000 AND 30000");
 							break;
 						case '4':
-							arry.push("priceID >= 3000");
+							arry.push("unit_price >= 30000");
 					}
-				}*/
+				}
 				if (params.item_LID) {
 					arry.push("item_LID =" + params.item_LID);
 				}
