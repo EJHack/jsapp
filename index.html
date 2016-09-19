@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8 />
+		<title>レコメンダー</title>
+		<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+		<!-- Leaflet.js -->
+		<link rel="stylesheet" href="//unpkg.com/leaflet@1.0.0-rc.3/dist/leaflet.css" />
+		<script src="//unpkg.com/leaflet@1.0.0-rc.3/dist/leaflet-src.js"></script>
+		<script src="//unpkg.com/esri-leaflet@2.0.3"></script>
+
+		<!-- marker cluster -->
+		<link rel="stylesheet" href="./lib/MarkerCluster/MarkerCluster.css" />
+		<link rel="stylesheet" href="./lib/MarkerCluster/MarkerCluster.Default.css" />
+		<script src="./lib/MarkerCluster/leaflet.markercluster.js"></script>
+
+		<!-- turf -->
+		<script src='//api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
+
+		<style>
+			html, body, #mapDiv { height: 100%; width: 100%; margin:0; padding:0; }
+			a { cursor: pointer; }
+		</style>
+	</head>
+	<body>
+		<div id="mapDiv"></div>
+
+		<script>
+			var marker, circle, popuplatlng, token;
+
+			if (!window.location.origin) {
+				window.location.origin = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port: '');
+			}
+
+			function serverAuth(callback){
+				L.esri.post('https://www.arcgis.com/sharing/generateToken', {
+					username: 'ejsuzuki',
+					password: 'ejsuzuki09',
+					f: 'json',
+					expiration: 86400,
+					client: 'referer',
+					referer: window.location.origin
+				}, callback);
+			}
+
+			var url = "//services5.arcgis.com/HzGpeRqGvs5TMkVr/arcgis/rest/services/MHS_modify_monitor/FeatureServer/0";
+
+			var params = {
+				ageID: null,
+				sexID: null,
+				priceID: null,
+				item_LID: null,
+				aniversaryID: null,
+				x: null,
+				y: null
+			}
+			var urlParam = location.search.substring(1);
+			if (urlParam) {
+				var param = urlParam.split('&');
+				for (i = 0; i < param.length; i++) {
+					var paramItem = param[i].split('=');
+					params[paramItem[0]] = paramItem[1];
+				}
+				//console.log("params: ", params);
+			}
+
+			var map = L.map("mapDiv").setView([Number(params.y), Number(params.x)], 12);
+			L.esri.basemapLayer("Topographic").addTo(map);
+			//L.tileLayer('//{s}.tile.osm.org/{z}/{x}/{y}.png', {
+			//	attribution: '&copy; <a href="://osm.org/copyright">OpenStreetMap</a> contributors'
+			//}).addTo(map);
+			//L.tileLayer('//d.tile.stamen.com/toner/{z}/{x}/{y}.png').addTo(map);
+
+			serverAuth(function(error, response){
+				token = response.token;
+				//var sql = "ageID =" + params.ageID + "AND sexID =" + params.sexID + "AND item_LID =" + params.item_LID + "AND aniversaryID =" + params.aniversaryID;
+				//var sql = "ageID =" + params.ageID;
+				var sql = "1=1";
+
+				L.esri.query({
+					url: url
+				}).token(token).where(sql).run(function(error, featureCollection){
+					if (featureCollection) {
+						if (featureCollection.features.length > 0) {
+							/*console.log("featureCollection: ", featureCollection)
+							var queryResutl = featureCollection.features;
+							var shopData = [];
+							for (var i = featureCollection.features.length - 1; i >= 0; i--) {
+								var feature = featureCollection.features[i];
+								for (var j = shopData.length - 1; j >= 0; j--) {
+									var shop = shopData[j];
+									if (feature.geometry !== shop.geometry) {
+										shopData.push(feature);
+									}
+								}
+							}
+							var shopCollection = {
+								features: shopData,
+								type: 'FeatureCollection'
+							}
+							console.log("featureCollection: ", featureCollection);
+							console.log("shopCollection: ", shopCollection);*/
+							var markers = L.markerClusterGroup();
+							var geojson = L.geoJson(featureCollection, {
+								onEachFeature: function(feature, layer){
+									layer.bindPopup(feature.properties.shop_name);
+								}
+							});
+							markers.addLayer(geojson);
+							map.addLayer(markers);
+						}
+						
+					} else {
+						console.log(error);
+					}
+				});
+
+				map.on('click', function(e){
+					if (marker) {
+						map.removeLayer(marker);
+					}
+					popuplatlng = e.latlng;
+					marker = L.marker(popuplatlng).addTo(map);
+					marker.bindPopup("<a id='popupLink'>検索</a>").openPopup();
+
+					/*var link = document.getElement.byId('popupLink');
+					link.addEventListener('click', function(){
+						L.circle(popuplatlng, 1000).addTo(map);
+						var buffer = createBuffer(popuplatlng);
+						var geojson = L.geoJson(buffer);
+
+						L.esri.query({
+							url: url
+						}).token(token).within(geojson).run(function(error, featureCollection){
+							if (featureCollection) {
+								console.log(featureCollection);
+							} else {
+								console.log(error);
+							}
+						});
+					});*/
+
+					if (circle) {
+						map.removeLayer(circle);
+					}
+					circle = L.circle(e.latlng, 1000).addTo(map);
+
+					var buffer = createBuffer(e.latlng);
+					var geojson = L.geoJson(buffer);
+
+					L.esri.query({
+						url: url
+					}).token(response.token).within(geojson).run(function(error, featureCollection){
+						if (featureCollection) {
+							if (featureCollection.features.length > 0) {
+								console.log(featureCollection);
+							}
+						} else {
+							console.log(error);
+						}
+					});
+				});
+
+				function createBuffer(latlng){
+					var pt = {
+						type: 'Feature',
+						geometry: { type:'Point', coordinates:[latlng.lng, latlng.lat] }
+					};
+					var buffer = turf.buffer(pt, 1, 'kilometers');
+					return buffer;
+				}
+			});
+		</script>
+	</body>
+</html>
