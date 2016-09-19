@@ -27,24 +27,9 @@
 		<div id="mapDiv"></div>
 
 		<script>
-			var marker, circle, popuplatlng, token;
+			var marker, circle, popuplatlng;
 
-			if (!window.location.origin) {
-				window.location.origin = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port: '');
-			}
-
-			function serverAuth(callback){
-				L.esri.post('https://www.arcgis.com/sharing/generateToken', {
-					username: 'ejsuzuki',
-					password: 'ejsuzuki09',
-					f: 'json',
-					expiration: 86400,
-					client: 'referer',
-					referer: window.location.origin
-				}, callback);
-			}
-
-			var url = "//services5.arcgis.com/HzGpeRqGvs5TMkVr/arcgis/rest/services/MHS_modify_monitor/FeatureServer/0";
+			var url = "//services5.arcgis.com/HzGpeRqGvs5TMkVr/arcgis/rest/services/aMHS_item_LID_12/FeatureServer/0";
 
 			var params = {
 				ageID: null,
@@ -53,7 +38,8 @@
 				item_LID: null,
 				aniversaryID: null,
 				x: null,
-				y: null
+				y: null,
+				token: null
 			}
 			var urlParam = location.search.substring(1);
 			if (urlParam) {
@@ -62,7 +48,6 @@
 					var paramItem = param[i].split('=');
 					params[paramItem[0]] = paramItem[1];
 				}
-				//console.log("params: ", params);
 			}
 
 			var map = L.map("mapDiv").setView([Number(params.y), Number(params.x)], 12);
@@ -72,105 +57,102 @@
 			//}).addTo(map);
 			//L.tileLayer('//d.tile.stamen.com/toner/{z}/{x}/{y}.png').addTo(map);
 
-			serverAuth(function(error, response){
-				token = response.token;
-				//var sql = "ageID =" + params.ageID + "AND sexID =" + params.sexID + "AND item_LID =" + params.item_LID + "AND aniversaryID =" + params.aniversaryID;
-				//var sql = "ageID =" + params.ageID;
-				var sql = "1=1";
+			//var sql = "ageID =" + params.ageID + "AND sexID =" + params.sexID + "AND item_LID =" + params.item_LID + "AND aniversaryID =" + params.aniversaryID;
+			//var sql = "ageID =" + params.ageID;
+			var sql = "1=1";
 
-				L.esri.query({
-					url: url
-				}).token(token).where(sql).run(function(error, featureCollection){
-					if (featureCollection) {
-						if (featureCollection.features.length > 0) {
-							/*console.log("featureCollection: ", featureCollection)
-							var queryResutl = featureCollection.features;
-							var shopData = [];
-							for (var i = featureCollection.features.length - 1; i >= 0; i--) {
-								var feature = featureCollection.features[i];
-								for (var j = shopData.length - 1; j >= 0; j--) {
-									var shop = shopData[j];
-									if (feature.geometry !== shop.geometry) {
-										shopData.push(feature);
-									}
+			L.esri.query({
+				url: url
+			}).token(params.token).where(sql).run(function(error, featureCollection){
+				if (featureCollection) {
+					if (featureCollection.features.length > 0) {
+						/*console.log("featureCollection: ", featureCollection)
+						var queryResutl = featureCollection.features;
+						var shopData = [];
+						for (var i = featureCollection.features.length - 1; i >= 0; i--) {
+							var feature = featureCollection.features[i];
+							for (var j = shopData.length - 1; j >= 0; j--) {
+								var shop = shopData[j];
+								if (feature.geometry !== shop.geometry) {
+									shopData.push(feature);
 								}
 							}
-							var shopCollection = {
-								features: shopData,
-								type: 'FeatureCollection'
-							}
-							console.log("featureCollection: ", featureCollection);
-							console.log("shopCollection: ", shopCollection);*/
-							var markers = L.markerClusterGroup();
-							var geojson = L.geoJson(featureCollection, {
-								onEachFeature: function(feature, layer){
-									layer.bindPopup(feature.properties.shop_name);
-								}
-							});
-							markers.addLayer(geojson);
-							map.addLayer(markers);
 						}
-						
-					} else {
-						console.log(error);
-					}
-				});
-
-				map.on('click', function(e){
-					if (marker) {
-						map.removeLayer(marker);
-					}
-					popuplatlng = e.latlng;
-					marker = L.marker(popuplatlng).addTo(map);
-					marker.bindPopup("<a id='popupLink'>検索</a>").openPopup();
-
-					/*var link = document.getElement.byId('popupLink');
-					link.addEventListener('click', function(){
-						L.circle(popuplatlng, 1000).addTo(map);
-						var buffer = createBuffer(popuplatlng);
-						var geojson = L.geoJson(buffer);
-
-						L.esri.query({
-							url: url
-						}).token(token).within(geojson).run(function(error, featureCollection){
-							if (featureCollection) {
-								console.log(featureCollection);
-							} else {
-								console.log(error);
+						var shopCollection = {
+							features: shopData,
+							type: 'FeatureCollection'
+						}
+						console.log("featureCollection: ", featureCollection);
+						console.log("shopCollection: ", shopCollection);*/
+						var markers = L.markerClusterGroup();
+						var geojson = L.geoJson(featureCollection, {
+							onEachFeature: function(feature, layer){
+								layer.bindPopup(feature.properties.shop_name);
 							}
 						});
-					});*/
-
-					if (circle) {
-						map.removeLayer(circle);
+						markers.addLayer(geojson);
+						map.addLayer(markers);
 					}
-					circle = L.circle(e.latlng, 1000).addTo(map);
+					
+				} else {
+					console.log(error);
+				}
+			});
 
-					var buffer = createBuffer(e.latlng);
+			map.on('click', function(e){
+				if (marker) {
+					map.removeLayer(marker);
+				}
+				popuplatlng = e.latlng;
+				marker = L.marker(popuplatlng).addTo(map);
+				marker.bindPopup("<a id='popupLink'>検索</a>").openPopup();
+
+				/*var link = document.getElement.byId('popupLink');
+				link.addEventListener('click', function(){
+					L.circle(popuplatlng, 1000).addTo(map);
+					var buffer = createBuffer(popuplatlng);
 					var geojson = L.geoJson(buffer);
 
 					L.esri.query({
 						url: url
-					}).token(response.token).within(geojson).run(function(error, featureCollection){
+					}).token(params.token).within(geojson).run(function(error, featureCollection){
 						if (featureCollection) {
-							if (featureCollection.features.length > 0) {
-								console.log(featureCollection);
-							}
+							console.log(featureCollection);
 						} else {
 							console.log(error);
 						}
 					});
-				});
+				});*/
 
-				function createBuffer(latlng){
-					var pt = {
-						type: 'Feature',
-						geometry: { type:'Point', coordinates:[latlng.lng, latlng.lat] }
-					};
-					var buffer = turf.buffer(pt, 1, 'kilometers');
-					return buffer;
+				if (circle) {
+					map.removeLayer(circle);
 				}
+				circle = L.circle(e.latlng, 1000).addTo(map);
+
+				var buffer = createBuffer(e.latlng);
+				var geojson = L.geoJson(buffer);
+
+				L.esri.query({
+					url: url
+				}).token(params.token).within(geojson).run(function(error, featureCollection){
+					if (featureCollection) {
+						if (featureCollection.features.length > 0) {
+							console.log(featureCollection);
+						}
+					} else {
+						console.log(error);
+					}
+				});
 			});
+
+			function createBuffer(latlng){
+				var pt = {
+					type: 'Feature',
+					geometry: { type:'Point', coordinates:[latlng.lng, latlng.lat] }
+				};
+				var buffer = turf.buffer(pt, 1, 'kilometers');
+				return buffer;
+			}
 		</script>
 	</body>
 </html>
