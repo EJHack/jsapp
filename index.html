@@ -10,13 +10,13 @@
 		<script src="//unpkg.com/leaflet@1.0.0-rc.3/dist/leaflet-src.js"></script>
 		<script src="//unpkg.com/esri-leaflet@2.0.3"></script>
 
+		<!-- jQuery -->
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
 		<!-- marker cluster -->
 		<link rel="stylesheet" href="./lib/MarkerCluster/MarkerCluster.css" />
 		<link rel="stylesheet" href="./lib/MarkerCluster/MarkerCluster.Default.css" />
 		<script src="./lib/MarkerCluster/leaflet.markercluster.js"></script>
-
-		<!-- turf -->
-		<script src='//api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
 
 		<style>
 			html, body, #mapDiv { height: 100%; width: 100%; margin:0; padding:0; }
@@ -27,7 +27,7 @@
 		<div id="mapDiv"></div>
 
 		<script>
-			var marker, circle, popuplatlng;
+			var marker, circle;
 
 			var url = "//services5.arcgis.com/HzGpeRqGvs5TMkVr/arcgis/rest/services/aMHS_item_LID_12/FeatureServer/0";
 
@@ -52,38 +52,49 @@
 
 			var map = L.map("mapDiv").setView([Number(params.y), Number(params.x)], 12);
 			L.esri.basemapLayer("Topographic").addTo(map);
-			//L.tileLayer('//{s}.tile.osm.org/{z}/{x}/{y}.png', {
-			//	attribution: '&copy; <a href="://osm.org/copyright">OpenStreetMap</a> contributors'
-			//}).addTo(map);
-			//L.tileLayer('//d.tile.stamen.com/toner/{z}/{x}/{y}.png').addTo(map);
 
-			//var sql = "ageID =" + params.ageID + "AND sexID =" + params.sexID + "AND item_LID =" + params.item_LID + "AND aniversaryID =" + params.aniversaryID;
-			//var sql = "ageID =" + params.ageID;
-			var sql = "1=1";
+			var sql = getSql();
+
+			function getSql(){
+				var arry = [];
+				if (params.ageID) {
+					arry.push("ageID =" + params.ageID);
+				}
+				if (params.sexID) {
+					arry.push("sexID =" + params.sexID);
+				}
+				/*if (params.priceID) {
+					switch(params.priceID){
+						case '1':
+							arry.push("priceID < " + 1000);
+							break;
+						case '2':
+							arry.push("priceID BETWEEN " + 1000 + " AND " + 2000);
+							break;
+						case '3':
+							arry.push("priceID BETWEEN 2000 AND 3000");
+							break;
+						case '4':
+							arry.push("priceID >= 3000");
+					}
+				}*/
+				if (params.item_LID) {
+					arry.push("item_LID =" + params.item_LID);
+				}
+				if (params.aniversaryID) {
+					arry.push("aniversaryID =" + params.aniversaryID);
+				}
+
+				var sql = arry.join(' AND ');
+
+				return sql;
+			}
 
 			L.esri.query({
 				url: url
 			}).token(params.token).where(sql).run(function(error, featureCollection){
 				if (featureCollection) {
 					if (featureCollection.features.length > 0) {
-						/*console.log("featureCollection: ", featureCollection)
-						var queryResutl = featureCollection.features;
-						var shopData = [];
-						for (var i = featureCollection.features.length - 1; i >= 0; i--) {
-							var feature = featureCollection.features[i];
-							for (var j = shopData.length - 1; j >= 0; j--) {
-								var shop = shopData[j];
-								if (feature.geometry !== shop.geometry) {
-									shopData.push(feature);
-								}
-							}
-						}
-						var shopCollection = {
-							features: shopData,
-							type: 'FeatureCollection'
-						}
-						console.log("featureCollection: ", featureCollection);
-						console.log("shopCollection: ", shopCollection);*/
 						var markers = L.markerClusterGroup();
 						var geojson = L.geoJson(featureCollection, {
 							onEachFeature: function(feature, layer){
@@ -93,7 +104,6 @@
 						markers.addLayer(geojson);
 						map.addLayer(markers);
 					}
-					
 				} else {
 					console.log(error);
 				}
@@ -103,56 +113,26 @@
 				if (marker) {
 					map.removeLayer(marker);
 				}
-				popuplatlng = e.latlng;
-				marker = L.marker(popuplatlng).addTo(map);
-				marker.bindPopup("<a id='popupLink'>検索</a>").openPopup();
-
-				/*var link = document.getElement.byId('popupLink');
-				link.addEventListener('click', function(){
-					L.circle(popuplatlng, 1000).addTo(map);
-					var buffer = createBuffer(popuplatlng);
-					var geojson = L.geoJson(buffer);
-
-					L.esri.query({
-						url: url
-					}).token(params.token).within(geojson).run(function(error, featureCollection){
-						if (featureCollection) {
-							console.log(featureCollection);
-						} else {
-							console.log(error);
-						}
-					});
-				});*/
-
 				if (circle) {
 					map.removeLayer(circle);
 				}
-				circle = L.circle(e.latlng, 1000).addTo(map);
+				marker = L.marker(e.latlng).addTo(map);
 
-				var buffer = createBuffer(e.latlng);
-				var geojson = L.geoJson(buffer);
+				var link = $('<a>検索</a>').click(function(){
+					circle = L.circle(e.latlng, 1000).addTo(map);
 
-				L.esri.query({
-					url: url
-				}).token(params.token).within(geojson).run(function(error, featureCollection){
-					if (featureCollection) {
-						if (featureCollection.features.length > 0) {
-							console.log(featureCollection);
-						}
-					} else {
-						console.log(error);
-					}
-				});
+					var parameter = createParameter(e.latlng);
+						var url = '//ejhack.github.io/listapp/test/index.html' + '?' + parameter;
+
+						document.location.href = url;
+				})[0];
+				marker.bindPopup(link).openPopup();
+
+				function createParameter(latlng){
+					var parameter = url + '/query?returnGeometry=true&where=' + '1%3D1' + '&outSr=4326&outFields=*&token=' + params.token + '&geometry=' + latlng.lng + '%2C' + latlng.lat + '&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&units=esriSRUnit_Meter&distance=1000&inSr=4326&f=geojson';
+					return parameter;
+				}
 			});
-
-			function createBuffer(latlng){
-				var pt = {
-					type: 'Feature',
-					geometry: { type:'Point', coordinates:[latlng.lng, latlng.lat] }
-				};
-				var buffer = turf.buffer(pt, 1, 'kilometers');
-				return buffer;
-			}
 		</script>
 	</body>
 </html>
