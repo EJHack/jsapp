@@ -52,6 +52,7 @@
 
 			var map = L.map("mapDiv").setView([Number(params.y), Number(params.x)], 10);
 			L.esri.basemapLayer("Topographic").addTo(map);
+			//L.tileLayer('//d.tile.stamen.com/toner/{z}/{x}/{y}.png').addTo(map);
 
 			var sql = getSql();
 
@@ -136,12 +137,13 @@
 			});
 
 			function createParameter(latlng){
-				var where = getWhereParameter();
+				//var where = getWhereParameter();
+				var where = sql;
 				var parameter = url + '/query?returnGeometry=true&where=' + where + '&outSr=4326&outFields=*&token=' + params.token + '&geometry=' + latlng.lng + '%2C' + latlng.lat + '&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&units=esriSRUnit_Meter&distance=1000&inSr=4326&f=geojson';
 				return parameter;
 			}
 
-			function getWhereParameter(){
+			/*function getWhereParameter(){
 				var arry = [];
 				if (params.ageID) {
 					arry.push("ageID%20%3D" + params.ageID);
@@ -173,7 +175,7 @@
 				var sql = arry.join('%20AND%20');
 
 				return sql;
-			}
+			}*/
 		</script>
 	</body>
 </html>
